@@ -1,443 +1,477 @@
 # Project Architecture
 
-# CRM System Architecture Analysis
+# Professional CRM System Architecture Plan
 
 ## Executive Summary
-This document outlines a comprehensive architecture for a professional CRM system featuring contact management, lead tracking, and AI-powered sales insights. The proposed solution leverages modern microservices architecture with event-driven patterns to ensure scalability, maintainability, and extensibility.
+This document outlines the comprehensive architecture for a modern, cloud-native CRM system featuring contact management, lead tracking, and AI-powered sales insights. The system is designed for scalability, maintainability, and enterprise-grade performance.
+
+---
 
 ## 1. SYSTEM ARCHITECTURE
 
-### Overall System Design
+### 1.1 Overall System Design
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                           CLIENT LAYER                               │
-├─────────────────┬───────────────────┬───────────────────────────────┤
-│   Web App (React)│  Mobile (React    │  Public API               │
-│                 │   Native)          │  (REST/GraphQL)           │
-└─────────────────┴───────────────────┴───────────────────────────────┘
-                                │
-                    ┌───────────┴───────────┐
-                    │    API Gateway        │
-                    │  (Kong/AWS API GW)    │
-                    └───────────┬───────────┘
-                                │
-┌───────────────────────────────┴─────────────────────────────────────┐
-│                         SERVICE MESH                                 │
-├─────────────┬──────────────┬──────────────┬────────────────────────┤
-│  Auth       │  Contact     │  Lead        │  Analytics & AI        │
-│  Service    │  Service     │  Service     │  Service               │
-├─────────────┼──────────────┼──────────────┼────────────────────────┤
-│  Email      │  Activity    │  Reporting   │  Notification          │
-│  Service    │  Service     │  Service     │  Service               │
-└─────────────┴──────────────┴──────────────┴────────────────────────┘
-                                │
-                    ┌───────────┴───────────┐
-                    │   Message Queue       │
-                    │  (RabbitMQ/Kafka)     │
-                    └───────────┬───────────┘
-                                │
-┌───────────────────────────────┴─────────────────────────────────────┐
-│                          DATA LAYER                                  │
-├──────────────┬──────────────┬──────────────┬───────────────────────┤
-│  PostgreSQL  │  MongoDB     │  Redis       │  Elasticsearch        │
-│  (Primary)   │  (Documents) │  (Cache)     │  (Search/Analytics)   │
-└──────────────┴──────────────┴──────────────┴───────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Load Balancer (AWS ALB)                       │
+└─────────────────────────┬───────────────────┬──────────────────────────┘
+                          │                   │
+┌─────────────────────────▼───────────────────▼──────────────────────────┐
+│                         API Gateway (Kong/AWS API Gateway)              │
+│                    (Rate Limiting, Auth, Request Routing)               │
+└─────────────────────────┬───────────────────┬──────────────────────────┘
+                          │                   │
+┌─────────────────────────▼───────────────────▼──────────────────────────┐
+│                              Service Mesh                               │
+├─────────────────┬──────────────┬──────────────┬───────────────────────┤
+│   Auth Service  │ Contact API  │   Lead API   │  Analytics Service     │
+│   (Node.js)     │  (Node.js)   │  (Node.js)   │    (Python)           │
+├─────────────────┼──────────────┼──────────────┼───────────────────────┤
+│                 │              │              │                         │
+│  ┌───────────┐  │ ┌──────────┐│ ┌──────────┐│  ┌──────────────────┐ │
+│  │PostgreSQL │  │ │PostgreSQL││ │PostgreSQL││  │  ML Pipeline     │ │
+│  │  (Auth)   │  │ │(Contacts)││ │ (Leads)  ││  │  (TensorFlow)    │ │
+│  └───────────┘  │ └──────────┘│ └──────────┘│  └──────────────────┘ │
+└─────────────────┴──────────────┴──────────────┴───────────────────────┘
+                          │                   │
+┌─────────────────────────▼───────────────────▼──────────────────────────┐
+│                        Message Queue (RabbitMQ/SQS)                     │
+└─────────────────────────┬───────────────────┬──────────────────────────┘
+                          │                   │
+┌─────────────────────────▼───────────────────▼──────────────────────────┐
+│   Event Processor      │ Notification Service│    Background Jobs      │
+│   (Node.js)           │    (Node.js)        │     (Node.js)          │
+└────────────────────────┴────────────────────┴──────────────────────────┘
 ```
 
-### Component Interaction Patterns
+### 1.2 Component Interaction & Data Flow
 
-**1. Synchronous Communication:**
-- REST APIs for client-service communication
-- GraphQL for complex data queries
-- gRPC for inter-service communication
+**Frontend Layer:**
+- React.js SPA with TypeScript
+- Redux for state management
+- Material-UI component library
+- WebSocket connections for real-time updates
 
-**2. Asynchronous Communication:**
-- Event-driven architecture using Apache Kafka
-- CQRS pattern for read/write separation
-- Event sourcing for audit trails
+**API Gateway:**
+- Request routing and load balancing
+- API versioning and documentation
+- Rate limiting and throttling
+- Request/response transformation
 
-### Data Flow Architecture
+**Microservices:**
 
-```
-User Action → API Gateway → Service → Database
-                 ↓
-            Event Bus → Analytics Service → AI Engine
-                 ↓
-            Notification Service → User
-```
+1. **Authentication Service**
+   - JWT token generation and validation
+   - OAuth2 integration (Google, Microsoft)
+   - Role-based access control (RBAC)
+   - Session management
 
-### Technology Stack Recommendations
+2. **Contact Management Service**
+   - CRUD operations for contacts
+   - Advanced search and filtering
+   - Contact enrichment integration
+   - Activity timeline tracking
+
+3. **Lead Management Service**
+   - Lead scoring and qualification
+   - Pipeline stage management
+   - Lead assignment and routing
+   - Conversion tracking
+
+4. **Analytics & AI Service**
+   - Sales forecasting models
+   - Lead scoring ML pipeline
+   - Performance analytics
+   - Predictive insights generation
+
+### 1.3 Technology Stack Recommendations
 
 **Frontend:**
-- React 18+ with TypeScript
-- Redux Toolkit for state management
-- Material-UI or Ant Design for UI components
-- React Query for API state management
-- Jest + React Testing Library
+```javascript
+{
+  "framework": "React 18.x with TypeScript",
+  "state_management": "Redux Toolkit + RTK Query",
+  "ui_library": "Material-UI v5",
+  "build_tool": "Vite",
+  "testing": "Jest + React Testing Library",
+  "real_time": "Socket.io-client"
+}
+```
 
-**Backend Services:**
-- Node.js with TypeScript (primary services)
-- Python for AI/ML services
-- Express.js / Fastify for REST APIs
-- Apollo Server for GraphQL
-- Bull for job queues
-
-**Databases:**
-- PostgreSQL 14+ (primary relational data)
-- MongoDB (unstructured data, activity logs)
-- Redis (caching, session management)
-- Elasticsearch (search, analytics)
-
-**Infrastructure:**
-- Kubernetes for container orchestration
-- Docker for containerization
-- Terraform for IaC
-- AWS/GCP as cloud provider
+**Backend:**
+```javascript
+{
+  "runtime": "Node.js 20.x LTS",
+  "framework": "NestJS (TypeScript)",
+  "orm": "TypeORM",
+  "validation": "class-validator",
+  "api_docs": "Swagger/OpenAPI",
+  "testing": "Jest + Supertest"
+}
+```
 
 **AI/ML Stack:**
-- TensorFlow/PyTorch for custom models
-- OpenAI API for NLP tasks
-- Apache Spark for data processing
-- MLflow for model management
+```python
+{
+  "framework": "FastAPI",
+  "ml_library": "TensorFlow 2.x",
+  "data_processing": "Pandas, NumPy",
+  "model_serving": "TensorFlow Serving",
+  "experiment_tracking": "MLflow"
+}
+```
+
+**Infrastructure:**
+```yaml
+cloud_provider: AWS
+container_orchestration: Kubernetes (EKS)
+container_registry: ECR
+ci_cd: GitHub Actions + ArgoCD
+infrastructure_as_code: Terraform
+monitoring: Prometheus + Grafana
+logging: ELK Stack (Elasticsearch, Logstash, Kibana)
+tracing: Jaeger
+```
+
+### 1.4 Scalability & Performance Considerations
+
+**Horizontal Scaling Strategy:**
+- Microservices auto-scaling based on CPU/memory metrics
+- Database read replicas for query distribution
+- Redis cluster for distributed caching
+- CDN for static assets and API responses
+
+**Performance Optimization:**
+- Database query optimization with proper indexing
+- GraphQL for efficient data fetching
+- Response compression (gzip/brotli)
+- Connection pooling for database connections
+- Lazy loading and code splitting on frontend
+
+**Caching Strategy:**
+```
+┌─────────────────────────────────────────┐
+│         CloudFront CDN                  │
+│    (Static Assets, API Responses)       │
+└────────────────┬────────────────────────┘
+                 │
+┌────────────────▼────────────────────────┐
+│        Redis Cluster                    │
+│   (Session, API Cache, Real-time)      │
+├─────────────────────────────────────────┤
+│  - User sessions (15min TTL)            │
+│  - API responses (5min TTL)             │
+│  - Lead scores (1hour TTL)              │
+│  - Contact search results (10min TTL)   │
+└─────────────────────────────────────────┘
+```
+
+---
 
 ## 2. IMPLEMENTATION STRATEGY
 
-### Development Phases
+### 2.1 Development Phases
 
-**Phase 1: Foundation (Weeks 1-8)**
-- Core infrastructure setup
-- Authentication and authorization service
-- Basic contact management CRUD
+**Phase 1: Foundation (Weeks 1-4)**
+- Infrastructure setup and CI/CD pipeline
+- Authentication service implementation
+- Basic frontend scaffolding
 - Database schema design
-- CI/CD pipeline setup
 
-**Phase 2: Core Features (Weeks 9-16)**
-- Lead tracking functionality
-- Activity logging system
-- Email integration
-- Basic reporting
-- Search functionality
+**Phase 2: Core CRM Features (Weeks 5-12)**
+- Contact management CRUD operations
+- Lead tracking and pipeline management
+- Search and filtering capabilities
+- Basic reporting dashboard
 
-**Phase 3: Advanced Features (Weeks 17-24)**
-- AI-powered insights engine
-- Advanced analytics
-- Workflow automation
-- Mobile application
-- Third-party integrations
+**Phase 3: Advanced Features (Weeks 13-20)**
+- AI-powered lead scoring
+- Sales insights and forecasting
+- Advanced analytics dashboard
+- Third-party integrations (email, calendar)
 
-**Phase 4: Polish & Scale (Weeks 25-32)**
+**Phase 4: Production Readiness (Weeks 21-24)**
 - Performance optimization
 - Security hardening
-- Load testing
-- Documentation
-- Training materials
+- Load testing and optimization
+- Documentation and training
 
-### Team Structure
+### 2.2 Team Structure
 
 ```
-┌─────────────────────┐
-│   Product Owner     │
-└──────────┬──────────┘
-           │
-┌──────────┴──────────┐
-│  Technical Lead     │
-└──────────┬──────────┘
-           │
-├──────────┼──────────┬──────────┬──────────┐
-│          │          │          │          │
-Frontend   Backend    DevOps     AI/ML      QA
-Team (3)   Team (4)   Team (2)   Team (2)   Team (2)
+┌─────────────────────────────────────────────┐
+│          Technical Lead (1)                 │
+│         (Architecture, Code Review)         │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────┼──────────────────────────┐
+│                  │                          │
+▼                  ▼                          ▼
+Backend Team    Frontend Team            DevOps Team
+├─ Senior BE (2) ├─ Senior FE (2)        ├─ Senior DevOps (1)
+├─ Mid BE (3)    ├─ Mid FE (2)           ├─ Mid DevOps (1)
+└─ Junior BE (1) └─ Junior FE (1)        └─ Cloud Architect (1)
+
+ML/AI Team         QA Team
+├─ ML Engineer (2) ├─ QA Lead (1)
+└─ Data Sci (1)   └─ QA Engineers (2)
 ```
 
-**Total Team Size: 14 members**
-
-### Risk Assessment & Mitigation
+### 2.3 Risk Assessment & Mitigation
 
 | Risk | Impact | Probability | Mitigation Strategy |
-|------|---------|-------------|-------------------|
-| Data privacy compliance | High | Medium | Implement GDPR/CCPA from start, regular audits |
-| AI model accuracy | High | Medium | A/B testing, continuous monitoring, fallback rules |
+|------|--------|-------------|-------------------|
+| Data breach | High | Medium | Implement encryption, regular security audits, penetration testing |
 | Scalability issues | High | Low | Load testing, auto-scaling, performance monitoring |
-| Third-party API failures | Medium | Medium | Circuit breakers, fallback mechanisms, caching |
-| Security breaches | High | Low | Regular security audits, penetration testing |
+| Integration failures | Medium | Medium | Comprehensive API testing, fallback mechanisms |
+| ML model accuracy | Medium | High | A/B testing, continuous model training, fallback rules |
+| Team knowledge gaps | Medium | Medium | Training programs, pair programming, documentation |
 
-### Timeline & Milestones
+### 2.4 Timeline & Milestones
 
-**Q1 (Months 1-3):**
-- MVP with basic CRM functionality
-- Core infrastructure operational
-- Basic AI insights prototype
+```
+Month 1: Foundation & Infrastructure
+├─ Week 1-2: Environment setup, CI/CD
+├─ Week 3-4: Auth service, basic frontend
+│
+Month 2-3: Core CRM Development
+├─ Week 5-8: Contact management
+├─ Week 9-12: Lead tracking, pipeline
+│
+Month 4-5: Advanced Features
+├─ Week 13-16: AI/ML integration
+├─ Week 17-20: Analytics, reporting
+│
+Month 6: Production Launch
+├─ Week 21-22: Performance optimization
+├─ Week 23-24: Security, documentation
+└─ Week 24: Production deployment
+```
 
-**Q2 (Months 4-6):**
-- Full feature set implementation
-- Mobile application beta
-- Advanced AI features
-
-**Q3 (Months 7-8):**
-- Performance optimization
-- Security hardening
-- Production deployment
+---
 
 ## 3. TECHNICAL SPECIFICATIONS
 
-### Database Design
+### 3.1 Database Design
 
-**PostgreSQL Schema (Core Entities):**
-
+**Contact Schema:**
 ```sql
--- Companies
-CREATE TABLE companies (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    industry VARCHAR(100),
-    size VARCHAR(50),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-
--- Contacts
 CREATE TABLE contacts (
-    id UUID PRIMARY KEY,
-    company_id UUID REFERENCES companies(id),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE,
     phone VARCHAR(50),
-    job_title VARCHAR(100),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
+    company VARCHAR(255),
+    job_title VARCHAR(255),
+    lead_score INTEGER DEFAULT 0,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB,
+    FOREIGN KEY (company_id) REFERENCES companies(id),
+    FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
--- Leads
+CREATE INDEX idx_contacts_email ON contacts(email);
+CREATE INDEX idx_contacts_company ON contacts(company_id);
+CREATE INDEX idx_contacts_lead_score ON contacts(lead_score DESC);
+```
+
+**Lead Schema:**
+```sql
 CREATE TABLE leads (
-    id UUID PRIMARY KEY,
-    contact_id UUID REFERENCES contacts(id),
-    status VARCHAR(50),
-    score INTEGER,
-    source VARCHAR(100),
-    assigned_to UUID REFERENCES users(id),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-
--- Activities
-CREATE TABLE activities (
-    id UUID PRIMARY KEY,
-    entity_type VARCHAR(50),
-    entity_id UUID,
-    type VARCHAR(50),
-    description TEXT,
-    user_id UUID REFERENCES users(id),
-    created_at TIMESTAMP
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contact_id UUID NOT NULL,
+    pipeline_id UUID NOT NULL,
+    stage_id UUID NOT NULL,
+    assigned_to UUID,
+    value DECIMAL(10,2),
+    probability INTEGER CHECK (probability >= 0 AND probability <= 100),
+    expected_close_date DATE,
+    status VARCHAR(50) DEFAULT 'open',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (contact_id) REFERENCES contacts(id),
+    FOREIGN KEY (pipeline_id) REFERENCES pipelines(id),
+    FOREIGN KEY (stage_id) REFERENCES pipeline_stages(id),
+    FOREIGN KEY (assigned_to) REFERENCES users(id)
 );
 ```
 
-### API Design
+### 3.2 API Design
 
 **RESTful API Structure:**
-
 ```
-/api/v1/
-├── /auth
-│   ├── POST /login
-│   ├── POST /logout
-│   └── POST /refresh
-├── /contacts
-│   ├── GET /
-│   ├── POST /
-│   ├── GET /{id}
-│   ├── PUT /{id}
-│   └── DELETE /{id}
-├── /leads
-│   ├── GET /
-│   ├── POST /
-│   ├── GET /{id}
-│   ├── PUT /{id}
-│   └── PATCH /{id}/status
-├── /analytics
-│   ├── GET /dashboard
-│   ├── GET /insights
-│   └── GET /predictions
-└── /activities
-    └── GET /
+BASE_URL: https://api.crm.com/v1
+
+Authentication:
+POST   /auth/login
+POST   /auth/logout
+POST   /auth/refresh
+GET    /auth/me
+
+Contacts:
+GET    /contacts?page=1&limit=20&search=term
+POST   /contacts
+GET    /contacts/:id
+PUT    /contacts/:id
+DELETE /contacts/:id
+GET    /contacts/:id/activities
+POST   /contacts/:id/activities
+
+Leads:
+GET    /leads?pipeline=:id&stage=:id
+POST   /leads
+GET    /leads/:id
+PUT    /leads/:id
+DELETE /leads/:id
+POST   /leads/:id/convert
+GET    /leads/:id/timeline
+
+Analytics:
+GET    /analytics/dashboard
+GET    /analytics/forecasts
+GET    /analytics/lead-scores
+POST   /analytics/reports
 ```
 
-**GraphQL Schema:**
-
+**GraphQL Alternative:**
 ```graphql
 type Query {
+  contacts(
+    page: Int
+    limit: Int
+    search: String
+    filters: ContactFilters
+  ): ContactConnection!
+  
   contact(id: ID!): Contact
-  contacts(filter: ContactFilter, pagination: Pagination): ContactConnection
-  lead(id: ID!): Lead
-  leads(filter: LeadFilter, pagination: Pagination): LeadConnection
-  insights(timeRange: TimeRange!): Insights
+  
+  leads(
+    pipeline: ID
+    stage: ID
+    assignedTo: ID
+  ): LeadConnection!
+  
+  analytics: AnalyticsDashboard!
 }
 
 type Mutation {
-  createContact(input: CreateContactInput!): Contact
-  updateContact(id: ID!, input: UpdateContactInput!): Contact
-  createLead(input: CreateLeadInput!): Lead
-  updateLeadStatus(id: ID!, status: LeadStatus!): Lead
+  createContact(input: CreateContactInput!): Contact!
+  updateContact(id: ID!, input: UpdateContactInput!): Contact!
+  createLead(input: CreateLeadInput!): Lead!
+  convertLead(id: ID!): ConversionResult!
 }
 
 type Subscription {
-  leadStatusChanged(userId: ID!): Lead
-  newInsight(userId: ID!): Insight
+  leadUpdated(userId: ID!): Lead!
+  newNotification(userId: ID!): Notification!
 }
 ```
 
-### Security Strategy
+### 3.3 Security Architecture
 
 **Authentication & Authorization:**
-- JWT-based authentication with refresh tokens
-- OAuth2 integration for SSO
-- Role-Based Access Control (RBAC)
-- API key management for third-party access
+```javascript
+// JWT Token Structure
+{
+  "sub": "user_id",
+  "email": "user@example.com",
+  "roles": ["sales_rep", "manager"],
+  "permissions": ["read:contacts", "write:leads"],
+  "company_id": "company_uuid",
+  "iat": 1234567890,
+  "exp": 1234571490
+}
+
+// Role-Based Access Control Matrix
+const permissions = {
+  admin: ["*"],
+  manager: [
+    "read:*",
+    "write:*",
+    "delete:contacts",
+    "delete:leads",
+    "view:analytics"
+  ],
+  sales_rep: [
+    "read:contacts",
+    "write:contacts",
+    "read:leads",
+    "write:leads:owned",
+    "view:analytics:owned"
+  ],
+  viewer: ["read:*"]
+};
+```
 
 **Security Measures:**
-```
-┌─────────────────┐
-│   WAF Layer     │ ← DDoS Protection, IP Filtering
-├─────────────────┤
-│   API Gateway   │ ← Rate Limiting, API Keys
-├─────────────────┤
-│   Services      │ ← JWT Validation, RBAC
-├─────────────────┤
-│   Database      │ ← Encryption at Rest, Row-Level Security
-└─────────────────┘
+- TLS 1.3 for all communications
+- Data encryption at rest (AES-256)
+- API rate limiting (100 req/min per user)
+- SQL injection prevention via parameterized queries
+- XSS protection with Content Security Policy
+- CORS configuration for trusted origins
+- Regular security audits and penetration testing
+
+### 3.4 Monitoring & Logging Architecture
+
+```yaml
+Metrics Collection:
+  - Application metrics: Prometheus
+  - Infrastructure metrics: CloudWatch
+  - Custom business metrics: StatsD
+
+Logging Pipeline:
+  - Application logs: Winston → Logstash
+  - Access logs: Nginx → Filebeat → Logstash
+  - Error tracking: Sentry
+  - Log storage: Elasticsearch
+  - Log analysis: Kibana
+
+Alerting Rules:
+  - API response time > 500ms
+  - Error rate > 1%
+  - Database connection pool > 80%
+  - Memory usage > 85%
+  - Failed login attempts > 10/min
+
+Dashboards:
+  - System health overview
+  - API performance metrics
+  - User activity analytics
+  - Business KPIs
+  - Security incidents
 ```
 
-**Data Protection:**
-- AES-256 encryption for sensitive data
-- TLS 1.3 for data in transit
-- PII data masking in logs
-- Regular security audits
-
-### Monitoring Architecture
-
-```
-┌─────────────────────────────────────────┐
-│         Grafana Dashboard               │
-├────────────┬────────────┬───────────────┤
-│ Prometheus │    ELK     │   Jaeger      │
-│ (Metrics)  │   (Logs)   │  (Tracing)    │
-└────────────┴────────────┴───────────────┘
-```
-
-**Key Metrics:**
-- API response times (p50, p95, p99)
-- Error rates by service
-- Database query performance
-- AI model accuracy metrics
-- User engagement metrics
+---
 
 ## 4. DEPLOYMENT STRATEGY
 
-### Infrastructure Requirements
+### 4.1 Infrastructure Requirements
 
 **Production Environment:**
 ```yaml
 Kubernetes Cluster:
-  - Master Nodes: 3 (HA)
-  - Worker Nodes: 6-10 (auto-scaling)
-  - Node Specs: 8 vCPU, 32GB RAM
+  - Master nodes: 3 (t3.medium)
+  - Worker nodes: 6 (t3.xlarge)
+  - Auto-scaling: 6-20 nodes
 
-Database Servers:
-  - PostgreSQL: 3 nodes (1 master, 2 replicas)
-  - MongoDB: 3-node replica set
-  - Redis: 3 nodes (Redis Sentinel)
-  - Elasticsearch: 3-node cluster
+Database:
+  - Primary: db.r6g.2xlarge (Multi-AZ)
+  - Read replicas: 2 x db.r6g.xlarge
+  - Backup: Automated daily snapshots
 
-Load Balancers:
-  - Application LB: 2 (active-passive)
-  - Database LB: pgBouncer
+Cache:
+  - Redis cluster: 3 nodes (cache.r6g.large)
+  
+Load Balancer:
+  - Application Load Balancer
+  - SSL termination
+  - Health checks
 
 Storage:
-  - SSD storage for databases
-  - Object storage for files (S3/GCS)
-  - 3-2-1 backup strategy
-```
-
-### CI/CD Pipeline
-
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│   Git    │ →   │  Build   │ →   │   Test   │ →   │  Deploy  │
-│  Push    │     │  Docker  │     │  Suite   │     │   K8s    │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘
-                                         ↓
-                                   ┌──────────┐
-                                   │  Quality │
-                                   │   Gate   │
-                                   └──────────┘
-```
-
-**Pipeline Stages:**
-1. Code commit triggers webhook
-2. Build Docker images
-3. Run unit tests (target: >80% coverage)
-4. Run integration tests
-5. Security scanning (SAST/DAST)
-6. Deploy to staging
-7. Run E2E tests
-8. Manual approval for production
-9. Blue-green deployment to production
-10. Post-deployment validation
-
-### Environment Management
-
-```
-Development → Staging → Production
-     ↓           ↓           ↓
-   Local      AWS Dev    AWS Prod
-   Minikube   EKS Small  EKS Large
-```
-
-**Environment Specifications:**
-
-| Environment | Purpose | Scale | Data |
-|------------|---------|--------|------|
-| Development | Feature development | Single node | Synthetic |
-| Staging | Integration testing | 50% of prod | Anonymized |
-| Production | Live system | Full scale | Real |
-
-### Backup & Disaster Recovery
-
-**Backup Strategy:**
-- Database: Daily full backups, hourly incrementals
-- Application state: Continuous replication
-- File storage: Cross-region replication
-- Retention: 30 days standard, 1 year for compliance
-
-**Disaster Recovery Plan:**
-```
-RTO: 4 hours
-RPO: 1 hour
-
-Recovery Procedures:
-1. Automated failover to secondary region
-2. Database restoration from latest backup
-3. DNS failover (Route53/Cloud DNS)
-4. Cache warming
-5. Service health verification
-```
-
-**Monitoring & Alerting:**
-- 24/7 monitoring with PagerDuty integration
-- Automated incident response for common issues
-- Runbook automation with Ansible
-- Regular DR drills (quarterly)
-
-## Conclusion
-
-This architecture provides a robust, scalable foundation for a professional CRM system with AI capabilities. The microservices approach ensures maintainability and allows for independent scaling of components. The event-driven architecture enables real-time insights and notifications, while the comprehensive security and monitoring strategies ensure production readiness.
-
-Key success factors:
-- Iterative development with continuous feedback
-- Strong focus on data quality for AI accuracy
-- Performance optimization from day one
-- Security-first approach
-- Comprehensive monitoring and observability
-
-This architecture is designed to support 100,000+ active users with sub-second response times and 99.9% uptime SLA.
+  - S3 buckets for file storage
+  - EBS volumes for persistent
